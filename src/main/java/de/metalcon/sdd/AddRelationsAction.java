@@ -42,6 +42,9 @@ public class AddRelationsAction extends Action {
             throw ExceptionFactory.createInvalidNodeTypeException();
         }
         ConfigNode configNode = config.getNode(nodeType);
+        System.out.println("configNode: " + configNode.toString());
+        System.out.println("" + configNode.getRelations().iterator().next());
+
         if (!configNode.isRelation(relation)) {
             throw ExceptionFactory.createInvalidRelationException();
         }

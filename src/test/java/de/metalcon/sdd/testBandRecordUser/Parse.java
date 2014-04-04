@@ -1,15 +1,16 @@
 package de.metalcon.sdd.testBandRecordUser;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import de.metalcon.domain.Muid;
+import de.metalcon.domain.MuidType;
+import de.metalcon.exceptions.ServiceOverloadedException;
 import de.metalcon.sdd.Sdd;
 import de.metalcon.sdd.WriteTransaction;
 import de.metalcon.sdd.api.exception.InvalidConfigException;
@@ -30,10 +31,7 @@ public class Parse {
 
     @Before
     public void setUp() throws InvalidConfigException, IOException {
-        Config config =
-                new XmlConfig(
-                        "src/test/resources/testBandRecordUser/config.xml");
-
+        Config config = new XmlConfig("src/test/resources/galleryConfig.xml");
         sdd = new Sdd(config);
     }
 
@@ -43,328 +41,48 @@ public class Parse {
     }
 
     @Test
-    @Ignore
-    public void parse() {
-        parseBand();
-        parseRecord();
-        parseUser();
-        parseBandRecord();
-        parseUserBand();
-        parseUserRecord();
+    public void test() throws ServiceOverloadedException {
+        Muid muidEntity = Muid.create(MuidType.USER);
+        createEntity(muidEntity.getValue());
+
+        Muid muidGallery = Muid.create(MuidType.GENRE);
+        createGallery(muidEntity.getValue(), muidGallery.getValue());
     }
 
-    private void parseBand() {
-        System.out.println("Bands");
+    private void createEntity(long id) {
+        System.out.println("entity " + id);
 
-        Iterable<String[]> bands =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/Band.csv"),
-                        "\t", "\n###\n");
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("uid", String.valueOf(id));
 
-        long t1 = System.currentTimeMillis();
-
+        // create entity
         WriteTransaction tx = sdd.createWriteTransaction();
+        tx.setProperties(id, "entity", properties);
 
-        int i = 0;
-        int t = 0;
-        for (String[] band : bands) {
-            ++i;
+        // create generic galleries
+        long galleryId = id + 1;
+        tx.setRelation(id, "entity", "allImages", galleryId);
+        tx.setRelation(id, "entity", "allImages", galleryId);
 
-            long id = BAND_ID_PREFIX + Long.parseLong(band[0]);
+        galleryId += 1;
+        tx.setRelation(id, "entity", "newsFeedImages", galleryId);
 
-            Map<String, String> properties = new HashMap<String, String>();
-            properties.put("name", band[1]);
-            properties.put("desc", band[2]);
-            properties.put("picid", band[3]);
-
-            tx.setProperties(id, "Band", properties);
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
+        tx.commit();
         sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
     }
 
-    private void parseRecord() {
-        System.out.println("Records");
-        Iterable<String[]> records =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/Record.csv"),
-                        "\t", "\n");
+    private void createGallery(long entityId, long galleryId) {
+        System.out.println("Gallery " + galleryId + " @ " + entityId);
 
-        long t1 = System.currentTimeMillis();
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("uid", String.valueOf(galleryId));
 
+        // create gallery
         WriteTransaction tx = sdd.createWriteTransaction();
+        tx.setProperties(galleryId, "userGallery", properties);
 
-        int i = 0;
-        int t = 0;
-        for (String[] record : records) {
-            ++i;
-
-            long id = RECORD_ID_PREFIX + Long.parseLong(record[0]);
-
-            Map<String, String> properties = new HashMap<String, String>();
-            properties.put("name", record[1]);
-            properties.put("release", record[2]);
-
-            tx.setProperties(id, "Record", properties);
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
+        tx.commit();
         sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
-    }
-
-    private void parseUser() {
-        System.out.println("Users");
-        Iterable<String[]> users =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/User.csv"),
-                        "\t", "\n");
-
-        long t1 = System.currentTimeMillis();
-
-        WriteTransaction tx = sdd.createWriteTransaction();
-
-        int i = 0;
-        int t = 0;
-        for (String[] user : users) {
-            ++i;
-
-            long id = USER_ID_PREFIX + Long.parseLong(user[0]);
-
-            Map<String, String> properties = new HashMap<String, String>();
-            properties.put("name", user[1]);
-            properties.put("picid", user[2]);
-
-            tx.setProperties(id, "User", properties);
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
-        sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
-    }
-
-    private void parseBandRecord() {
-        System.out.println("BandRecord");
-        Iterable<String[]> bandRecords =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/BandRecord.csv"),
-                        "\t", "\n");
-
-        long t1 = System.currentTimeMillis();
-
-        WriteTransaction tx = sdd.createWriteTransaction();
-
-        int i = 0;
-        int t = 0;
-        for (String[] bandRecord : bandRecords) {
-            ++i;
-
-            long bandId = BAND_ID_PREFIX + Long.parseLong(bandRecord[0]);
-            long recordId = RECORD_ID_PREFIX + Long.parseLong(bandRecord[1]);
-
-            tx.addRelations(bandId, "Band", "records", new long[] {
-                recordId
-            });
-            tx.addRelations(recordId, "Record", "bands", new long[] {
-                bandId
-            });
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
-        sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
-    }
-
-    private void parseUserBand() {
-        System.out.println("UserBand");
-        Iterable<String[]> userBands =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/UserBand.csv"),
-                        "\t", "\n");
-
-        long t1 = System.currentTimeMillis();
-
-        WriteTransaction tx = sdd.createWriteTransaction();
-
-        int i = 0;
-        int t = 0;
-        for (String[] userBand : userBands) {
-            ++i;
-
-            long userId = USER_ID_PREFIX + Long.parseLong(userBand[0]);
-            long bandId = BAND_ID_PREFIX + Long.parseLong(userBand[1]);
-
-            tx.addRelations(userId, "User", "bands", new long[] {
-                bandId
-            });
-            tx.addRelations(bandId, "Band", "users", new long[] {
-                userId
-            });
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
-        sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
-    }
-
-    private void parseUserRecord() {
-        System.out.println("UserRecord");
-        Iterable<String[]> userRecords =
-                new CsvIteratable(
-                        Paths.get("src/test/resources/testBandRecordUser/UserRecord.csv"),
-                        "\t", "\n");
-
-        long t1 = System.currentTimeMillis();
-
-        WriteTransaction tx = sdd.createWriteTransaction();
-
-        int i = 0;
-        int t = 0;
-        for (String[] userRecord : userRecords) {
-            ++i;
-
-            long userId = USER_ID_PREFIX + Long.parseLong(userRecord[0]);
-            long recordId = RECORD_ID_PREFIX + Long.parseLong(userRecord[1]);
-
-            tx.addRelations(userId, "User", "records", new long[] {
-                recordId
-            });
-            tx.addRelations(recordId, "Record", "users", new long[] {
-                userId
-            });
-
-            ++t;
-            if (t == TRANSACTION_LENGTH) {
-                t = 0;
-                tx.commit();
-                tx = sdd.createWriteTransaction();
-            }
-        }
-
-        if (t != 0) {
-            tx.commit();
-        }
-
-        long t2 = System.currentTimeMillis();
-
-        System.out.println("Count: " + i);
-        System.out.println("filling queue: " + (t2 - t1) + " ms");
-
-        long t3 = System.currentTimeMillis();
-
-        sdd.waitUntilQueueEmpty();
-
-        long t4 = System.currentTimeMillis();
-
-        System.out.println("working queue: " + (t4 - t3) + " ms");
-        System.out.println();
     }
 
 }

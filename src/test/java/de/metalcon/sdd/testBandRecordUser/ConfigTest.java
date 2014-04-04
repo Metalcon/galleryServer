@@ -16,9 +16,7 @@ public class ConfigTest {
     @Test
     public void testConfig() throws InvalidConfigException, SAXException,
             IOException, ParserConfigurationException {
-        Config config =
-                new XmlConfig(
-                        "src/test/resources/testBandRecordUser/config.xml");
+        Config config = new XmlConfig("src/test/resources/galleryConfig.xml");
         config.validate();
     }
 

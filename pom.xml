@@ -72,6 +72,11 @@
       <version>${metalcon.static-data-delivery-server-api.version}</version>
     </dependency>
     <dependency>
+    <groupId>de.metalcon</groupId>
+    <artifactId>muid</artifactId>
+    <version>0.2.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>net.hh</groupId>
       <artifactId>RequestDispatcher</artifactId>
       <version>${metalcon.request-dispatcher.version}</version>
